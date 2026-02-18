@@ -1,0 +1,56 @@
+/peer-review
+# Peer Review Triage
+
+A peer team lead reviewed the code and provided findings below.
+
+Context:
+- They have less context than we do (history + decisions)
+- You are the team lead — do not accept findings at face value
+- Your job is to verify, classify, and decide what to do
+
+Peer findings:
+[PASTE FEEDBACK]
+
+---
+
+## Rules
+
+- Be skeptical, not defensive
+- Verify using actual code evidence when possible
+- Do not reopen locked decisions unless explicitly asked
+- Prefer minimal fixes over refactors
+
+---
+
+## For EACH finding
+
+1) **Restate the claim** in your own words (1 line)
+2) **Evidence check**
+   - File/area: [path or module]
+   - Does it exist? ✅ / ❌ / ❓ (unverifiable)
+   - Evidence: [short quote or description of relevant code]
+3) **If invalid**
+   - Explain why (misread, already handled, decision mismatch)
+4) **If valid**
+   - Severity: CRITICAL / HIGH / MEDIUM / LOW
+   - Impact: [security / data / UX / perf / maintainability]
+   - Smallest fix: [one concrete approach]
+   - Add to fix plan (yes/no)
+
+---
+
+## Output
+
+### ✅ Confirmed Findings
+- [Finding] — [Severity] — [File/area] — [Smallest fix]
+
+### ❌ Invalid / Not Applicable
+- [Finding] — Why it’s invalid / decision mismatch / already handled
+
+### ❓ Unverifiable (Needs Info)
+- [Finding] — What’s missing (file/line, repro steps, environment)
+
+### 📌 Prioritized Action Plan
+1. [CRITICAL/HIGH] …
+2. [MEDIUM] …
+3. [LOW] …

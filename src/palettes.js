@@ -9,7 +9,11 @@ export const PALETTES = {
   Forest:      ['#184e77', '#34a0a4', '#52b788', '#d9ed92', '#b5e48c'],
   Coral:       ['#ff6b6b', '#ee5a6f', '#cc527a', '#e8175d', '#474747'],
   Pastel:      ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff'],
-  Synthwave:   ['#ff006e', '#8338ec', '#3a86ff', '#06ffa5', '#ffbe0b'],
+  Ocean:       ['#023e8a', '#0096c7', '#48cae4', '#00b4d8', '#ade8f4'],
+  Ember:       ['#d62828', '#e76f51', '#f4a261', '#fcbf49', '#e63946'],
+  Candy:       ['#ff9ff3', '#ffeaa7', '#a29bfe', '#74b9ff', '#55efc4'],
+  Copper:      ['#8b1a1a', '#bf4e30', '#d4833c', '#e0b04d', '#3e5f8a'],
+  Solar:       ['#ffd60a', '#f9c74f', '#f3722c', '#f94144', '#43aa8b'],
 };
 
 const paletteNames = Object.keys(PALETTES);

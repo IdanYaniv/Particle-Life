@@ -8,6 +8,80 @@ import Panel from './ui/Panel.jsx';
 
 const DEFAULT_PARTICLE_COUNT = 4000;
 
+// --- Text-to-particle helpers ---
+
+function sampleTextPositions(text, W, H) {
+  const off = document.createElement('canvas');
+  off.width = W; off.height = H;
+  const ctx = off.getContext('2d');
+
+  // Start at 60% of canvas height, shrink to fit width
+  let fontSize = H * 0.6;
+  ctx.font = `900 ${fontSize}px Arial Black, Arial`;
+  const tw = ctx.measureText(text).width;
+  const maxW = W * 0.85;
+  if (tw > maxW) fontSize = fontSize * (maxW / tw);
+  fontSize = Math.max(20, fontSize);
+
+  ctx.font = `900 ${fontSize}px Arial Black, Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(text, W / 2, H / 2);
+
+  const data = ctx.getImageData(0, 0, W, H).data;
+  const lit = [];
+  const step = Math.max(2, Math.round(Math.sqrt((W * H) / 8000)));
+  for (let py = 0; py < H; py += step)
+    for (let px = 0; px < W; px += step)
+      if (data[(py * W + px) * 4 + 3] > 128) lit.push({ x: px, y: py });
+  return lit;
+}
+
+function buildTextAssignment(physics, litPixels, speciesColor) {
+  const N = physics.particleCount;
+  const targets = new Float32Array(N * 2);
+  const mask    = new Uint8Array(N);
+  if (!litPixels || litPixels.length === 0) return { targets, mask };
+
+  if (speciesColor) {
+    // Group lit pixels by x-position into SPECIES_COUNT buckets,
+    // then assign each species to its bucket
+    const S = physics.SPECIES_COUNT;
+    const minX = Math.min(...litPixels.map(p => p.x));
+    const maxX = Math.max(...litPixels.map(p => p.x));
+    const span = Math.max(1, maxX - minX);
+    const groups = Array.from({ length: S }, () => []);
+    for (const p of litPixels) {
+      const b = Math.min(S - 1, Math.floor(((p.x - minX) / span) * S));
+      groups[b].push(p);
+    }
+    // Fallback: merge empty buckets into neighbours
+    for (let s = 0; s < S; s++) if (groups[s].length === 0) groups[s] = litPixels;
+    for (let i = 0; i < N; i++) {
+      const s    = physics.species[i];
+      const pool = groups[s % S];
+      const p    = pool[Math.floor((i / N) * pool.length) % pool.length];
+      targets[i * 2] = p.x; targets[i * 2 + 1] = p.y;
+      mask[i] = 1;
+    }
+  } else {
+    // Uniform spatial assignment: sort both by Morton-ish key (interleave x,y bits)
+    const cx = litPixels.reduce((a, p) => a + p.x, 0) / litPixels.length;
+    const cy = litPixels.reduce((a, p) => a + p.y, 0) / litPixels.length;
+    const sorted = [...litPixels].sort((a, b) =>
+      Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx)
+    );
+    const L = sorted.length;
+    for (let i = 0; i < N; i++) {
+      const p = sorted[Math.floor((i / N) * L)];
+      targets[i * 2] = p.x; targets[i * 2 + 1] = p.y;
+      mask[i] = 1;
+    }
+  }
+  return { targets, mask };
+}
+
 function isColorDark(hex) {
   if (!hex || hex.length < 7) return false;
   const r = parseInt(hex.slice(1,3), 16);
@@ -32,6 +106,10 @@ export default function App() {
   // Track bgColor for overlay rendering
   const bgColorRef = useRef('#f5f0eb');
 
+  // Text-to-particle
+  const textDebounceRef   = useRef(null);
+  const speciesColorRef   = useRef(false);
+
   const [panelState, setPanelState] = useState({
     speed: 1.0,
     damping: 0.985,
@@ -40,6 +118,8 @@ export default function App() {
     paletteName: '',
     bgColor: '#f5f0eb',
     trailFade: 0.03,
+    contentText: '',
+    speciesColorMode: false,
   });
 
   useEffect(() => {
@@ -312,6 +392,26 @@ export default function App() {
           M[a][b] = +(Math.random() * 2 - 1).toFixed(2);
     }
 
+    // Text content — debounce 200ms, rebuild assignment on change
+    if ('contentText' in updates || 'speciesColorMode' in updates) {
+      if ('speciesColorMode' in updates) speciesColorRef.current = updates.speciesColorMode;
+      const text = 'contentText' in updates ? updates.contentText : simRef.current?._lastText ?? '';
+      if (simRef.current) simRef.current._lastText = text;
+
+      clearTimeout(textDebounceRef.current);
+      if (!text.trim()) {
+        physics.clearTextTargets();
+      } else {
+        textDebounceRef.current = setTimeout(() => {
+          const { physics: ph } = simRef.current ?? {};
+          if (!ph) return;
+          const lit = sampleTextPositions(text, ph.width, ph.height);
+          const { targets, mask } = buildTextAssignment(ph, lit, speciesColorRef.current);
+          ph.setTextTargets(targets, mask);
+        }, 200);
+      }
+    }
+
     setPanelState(prev => {
       const next = { ...prev };
       for (const key in updates) {
@@ -345,9 +445,10 @@ export default function App() {
     renderer.setTrailFade(newTrailFade);
     // Clear FBOs by re-applying current bgColor
     renderer.setBgColor(bgColorRef.current);
-    // Clear strokes
+    // Clear strokes and text targets
     strokesRef.current = [];
-    setPanelState(prev => ({ ...prev, paletteName, speed: newSpeed, damping: newDamping, rmax: newRmax, trailFade: newTrailFade }));
+    physics.clearTextTargets();
+    setPanelState(prev => ({ ...prev, paletteName, speed: newSpeed, damping: newDamping, rmax: newRmax, trailFade: newTrailFade, contentText: '' }));
   }, []);
 
   return (

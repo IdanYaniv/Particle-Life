@@ -191,16 +191,19 @@ export default function Panel({ state, onUpdate, onRefresh }) {
               {isDark ? 'light_mode' : 'dark_mode'}
             </span>
           </button>
-          {/* Refresh */}
-          <button
-            onClick={onRefresh}
-            className={`w-7 h-7 flex items-center justify-center rounded-lg ${theme.btnBg} transition-colors`}
-            title="Restart simulation"
+          {/* Refresh — only visible when collapsed, slides in smoothly */}
+          <div
+            className="overflow-hidden transition-all duration-200 ease-in-out"
+            style={{ maxWidth: collapsed ? '32px' : '0px', opacity: collapsed ? 1 : 0 }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '16px', opacity: 0.65 }}>
-              refresh
-            </span>
-          </button>
+            <button
+              onClick={onRefresh}
+              className={`w-7 h-7 flex items-center justify-center rounded-lg ${theme.btnBg} transition-colors`}
+              title="Reshape simulation"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px', opacity: 0.65 }}>refresh</span>
+            </button>
+          </div>
           {/* Collapse */}
           <button
             onClick={() => setCollapsed(!collapsed)}
@@ -243,15 +246,68 @@ export default function Panel({ state, onUpdate, onRefresh }) {
             format={v => v < 0.02 ? 'L' : v > 0.1 ? 'S' : 'M'}
             theme={theme} />
         </Section>
+
+        <Section title="Content" theme={theme}>
+          <div className="space-y-2">
+            <textarea
+              maxLength={60}
+              rows={2}
+              placeholder="Type to shape particles…"
+              value={state.contentText || ''}
+              onChange={e => onUpdate({ contentText: e.target.value })}
+              className="w-full resize-none rounded-xl px-3 py-2 text-xs outline-none focus:ring-1 transition-all"
+              style={{
+                fontFamily: "'Geist Mono', monospace",
+                background: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.04)',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)'}`,
+                color: isDark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.8)',
+              }}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-[9px]" style={{ color: theme.sliderLabel }}>
+                {(state.contentText || '').length}/60
+              </span>
+              {/* Species color toggle */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px]" style={{ color: theme.sliderLabel }}>Color by species</span>
+                <button
+                  onClick={() => onUpdate({ speciesColorMode: !state.speciesColorMode })}
+                  className="relative shrink-0 transition-colors duration-200"
+                  style={{
+                    width: '32px', height: '18px', borderRadius: '9px',
+                    background: state.speciesColorMode
+                      ? (isDark ? 'rgba(56,189,248,0.7)' : 'rgba(14,165,233,0.8)')
+                      : (isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)'),
+                  }}
+                >
+                  <div
+                    className="absolute top-[3px] w-3 h-3 rounded-full transition-all duration-200"
+                    style={{
+                      left: state.speciesColorMode ? '17px' : '3px',
+                      background: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,1)',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    }}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </Section>
       </div>
 
-      {/* Shuffle button */}
-      <div className={`shrink-0 p-3 border-t ${theme.border}`}>
+      {/* Shuffle + Reshape buttons */}
+      <div className={`shrink-0 p-3 border-t ${theme.border} flex gap-2`}>
         <button
           onClick={() => handleChange('shuffle', true)}
-          className={`w-full py-2.5 rounded-xl border text-xs font-semibold transition-all ${theme.shuffleBg} ${theme.shuffleText}`}
+          className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold transition-all ${theme.shuffleBg} ${theme.shuffleText}`}
         >
-          Shuffle Behavior
+          Shuffle
+        </button>
+        <button
+          onClick={onRefresh}
+          className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold transition-all ${theme.shuffleBg} ${theme.shuffleText}`}
+        >
+          Reshape
         </button>
       </div>
     </div>

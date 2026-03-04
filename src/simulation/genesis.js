@@ -132,19 +132,85 @@ function stripeDistribution(x, y, W, H, N) {
   }
 }
 
-function burstDistribution(x, y, W, H, N) {
-  const numCenters = 1 + Math.floor(Math.random() * 3);
-  const centers = Array.from({ length: numCenters }, () => ({
-    x: W * 0.2 + Math.random() * W * 0.6,
-    y: H * 0.2 + Math.random() * H * 0.6,
-  }));
-  const maxR = Math.min(W, H) * 0.42;
+// Murmuration — elongated lens at random angle, like a bird flock mid-turn
+function murmurating(x, y, W, H, N) {
+  const cx = W / 2, cy = H / 2;
+  const semiMajor = Math.min(W, H) * 0.38;
+  const semiMinor = Math.min(W, H) * 0.07;
+  const angle = Math.random() * Math.PI;
+  const cs = Math.cos(angle), sn = Math.sin(angle);
   for (let i = 0; i < N; i++) {
-    const c = centers[Math.floor(Math.random() * numCenters)];
+    const r = Math.sqrt(Math.random());
+    const theta = Math.random() * Math.PI * 2;
+    const ex = semiMajor * r * Math.cos(theta);
+    const ey = semiMinor * r * Math.sin(theta);
+    x[i] = Math.max(10, Math.min(W - 10, cx + ex * cs - ey * sn));
+    y[i] = Math.max(10, Math.min(H - 10, cy + ex * sn + ey * cs));
+  }
+}
+
+// Cell division — two overlapping discs, like a cell mid-mitosis
+function cellDivision(x, y, W, H, N) {
+  const cx = W / 2, cy = H / 2;
+  const r = Math.min(W, H) * 0.17;
+  const offset = r * 0.65;
+  const c1 = { x: cx - offset, y: cy };
+  const c2 = { x: cx + offset, y: cy };
+  for (let i = 0; i < N; i++) {
+    const cell = Math.random() < 0.5 ? c1 : c2;
     const angle = Math.random() * Math.PI * 2;
-    const t = Math.random() < 0.35 ? Math.random() * 0.15 : 0.4 + Math.random() * 0.6;
-    x[i] = c.x + Math.cos(angle) * t * maxR;
-    y[i] = c.y + Math.sin(angle) * t * maxR;
+    const rad = r * Math.sqrt(Math.random());
+    x[i] = Math.max(10, Math.min(W - 10, cell.x + Math.cos(angle) * rad));
+    y[i] = Math.max(10, Math.min(H - 10, cell.y + Math.sin(angle) * rad));
+  }
+}
+
+// Neural net — dense soma with long radiating axons
+function neuralNet(x, y, W, H, N) {
+  const cx = W / 2, cy = H / 2;
+  const somaR = Math.min(W, H) * 0.055;
+  const axonCount = 4 + Math.floor(Math.random() * 5);
+  const axonLen = Math.min(W, H) * 0.38;
+  const somaN = Math.floor(N * 0.25);
+  const axonAngles = Array.from({ length: axonCount }, () => Math.random() * Math.PI * 2);
+  for (let i = 0; i < somaN; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const rad = somaR * Math.sqrt(Math.random());
+    x[i] = Math.max(10, Math.min(W - 10, cx + Math.cos(angle) * rad));
+    y[i] = Math.max(10, Math.min(H - 10, cy + Math.sin(angle) * rad));
+  }
+  for (let i = somaN; i < N; i++) {
+    const axon = Math.floor(Math.random() * axonCount);
+    const t = Math.pow(Math.random(), 0.6);
+    const len = t * axonLen + (Math.random() - 0.5) * 18;
+    const spread = (Math.random() - 0.5) * 0.18;
+    const a = axonAngles[axon] + spread;
+    x[i] = Math.max(10, Math.min(W - 10, cx + Math.cos(a) * len));
+    y[i] = Math.max(10, Math.min(H - 10, cy + Math.sin(a) * len));
+  }
+}
+
+// Mycelium — branching filaments from scattered seed points
+function mycelium(x, y, W, H, N) {
+  const seeds = 3 + Math.floor(Math.random() * 4);
+  const seedPts = Array.from({ length: seeds }, () => ({
+    x: W * 0.15 + Math.random() * W * 0.7,
+    y: H * 0.15 + Math.random() * H * 0.7,
+  }));
+  for (let i = 0; i < N; i++) {
+    const seed = seedPts[Math.floor(Math.random() * seeds)];
+    const baseAngle = Math.random() * Math.PI * 2;
+    const steps = 2 + Math.floor(Math.random() * 7);
+    let px = seed.x, py = seed.y;
+    let angle = baseAngle;
+    for (let s = 0; s < steps; s++) {
+      angle += (Math.random() - 0.5) * 1.1;
+      const stepLen = 15 + Math.random() * 35;
+      px += Math.cos(angle) * stepLen;
+      py += Math.sin(angle) * stepLen;
+    }
+    x[i] = Math.max(10, Math.min(W - 10, px));
+    y[i] = Math.max(10, Math.min(H - 10, py));
   }
 }
 
@@ -157,7 +223,10 @@ const distributions = [
   spiralDistribution,
   gridDistribution,
   stripeDistribution,
-  burstDistribution,
+  murmurating,
+  cellDivision,
+  neuralNet,
+  mycelium,
 ];
 
 function assignSpecies(species, sizeTier, N) {

@@ -43,6 +43,10 @@ export function createPhysics(config) {
   // Stroke attractor points [{x, y, alpha}]
   let strokeForcePoints = [];
 
+  // Text spring targets — Float32Array(N*2), Uint8Array(N) mask
+  let textTargets = null;
+  let textMask = null;
+
   // Spatial grid
   let cellSize, cols, rows, head, next;
 
@@ -148,6 +152,21 @@ export function createPhysics(config) {
       }
       if (bestSF > 0) { ax += bestSdx * bestSF; ay += bestSdy * bestSF; }
 
+      // Text spring force — attract particle to its pre-assigned target
+      if (textMask && textTargets && textMask[i]) {
+        const tdx = textTargets[i * 2]     - x[i];
+        const tdy = textTargets[i * 2 + 1] - y[i];
+        const td  = Math.hypot(tdx, tdy);
+        if (td > 0.5) {
+          const sf = Math.min(td * 14, 200);
+          ax += (tdx / td) * sf;
+          ay += (tdy / td) * sf;
+        }
+        // Tiny alive shimmer so text never fully freezes
+        ax += (Math.random() - 0.5) * 0.8;
+        ay += (Math.random() - 0.5) * 0.8;
+      }
+
       // Cap force magnitude
       const mag = Math.hypot(ax, ay);
       if (mag > MAX_FORCE) { ax *= MAX_FORCE/mag; ay *= MAX_FORCE/mag; }
@@ -203,6 +222,8 @@ export function createPhysics(config) {
   function setRmax(v) { RMAX = v; gridInit(); }
   function setCursor(cx, cy, intensity) { cursorX = cx; cursorY = cy; cursorIntensity = intensity; }
   function setStrokeForces(pts) { strokeForcePoints = pts; }
+  function setTextTargets(targets, mask) { textTargets = targets; textMask = mask; }
+  function clearTextTargets() { textTargets = null; textMask = null; }
 
   gridInit();
 
@@ -211,7 +232,7 @@ export function createPhysics(config) {
     M,
     step, resize,
     setMutation, setSpeed, setDamping, setRmax,
-    setCursor, setStrokeForces,
+    setCursor, setStrokeForces, setTextTargets, clearTextTargets,
     get particleCount() { return N; },
     get width() { return W; },
     get height() { return H; },
